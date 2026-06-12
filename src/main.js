@@ -8,6 +8,7 @@ import 'vuetify/styles'
 
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from '@/stores/auth'
 
 const vuetify = createVuetify({
   components,
@@ -25,7 +26,14 @@ const vuetify = createVuetify({
 })
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+
+app.use(pinia)
 app.use(router)
 app.use(vuetify)
-app.mount('#app')
+
+// Initialize auth before mounting
+const auth = useAuthStore()
+auth.init().then(() => {
+  app.mount('#app')
+})
