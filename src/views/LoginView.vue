@@ -9,12 +9,18 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const loading = ref(false)
 
-function handleLogin() {
-  if (auth.login(email.value, password.value)) {
+async function handleLogin() {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.login(email.value, password.value)
     router.push('/dashboard')
-  } else {
-    error.value = 'Credenciales incorrectas'
+  } catch (e) {
+    error.value = e.message || 'Credenciales incorrectas'
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -33,11 +39,8 @@ function handleLogin() {
             <v-form @submit.prevent="handleLogin">
               <v-text-field v-model="email" label="Email" type="email" variant="outlined" class="mb-2" />
               <v-text-field v-model="password" label="Contraseña" type="password" variant="outlined" class="mb-4" />
-              <v-btn type="submit" color="primary" block size="large">Entrar</v-btn>
+              <v-btn type="submit" color="primary" block size="large" :loading="loading">Entrar</v-btn>
             </v-form>
-            <p class="text-caption text-center mt-4 text-medium-emphasis">
-              Demo: admin@udc.es / docente@udc.es — pass: 1234
-            </p>
           </v-card-text>
         </v-card>
       </v-col>

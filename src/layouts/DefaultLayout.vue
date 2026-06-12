@@ -5,8 +5,16 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
-function logout() {
-  auth.logout()
+const navItems = [
+  { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
+  { title: 'Docentes', icon: 'mdi-account-group', to: '/docentes' },
+  { title: 'Periodos', icon: 'mdi-calendar-range', to: '/periodos' },
+  { title: 'Disponibilidad', icon: 'mdi-calendar-clock', to: '/disponibilidad' },
+  { title: 'TFGs', icon: 'mdi-book-open-variant', to: '/tfgs' },
+]
+
+async function logout() {
+  await auth.logout()
   router.push('/login')
 }
 </script>
@@ -16,7 +24,13 @@ function logout() {
     <v-list-item class="pa-4" prepend-icon="mdi-school" title="TribunalUDC" subtitle="Gestión de Tribunales" />
     <v-divider />
     <v-list nav>
-      <v-list-item to="/dashboard" prepend-icon="mdi-view-dashboard" title="Dashboard" />
+      <v-list-item
+        v-for="item in navItems"
+        :key="item.to"
+        :to="item.to"
+        :prepend-icon="item.icon"
+        :title="item.title"
+      />
     </v-list>
     <template #append>
       <div class="pa-4">
@@ -28,8 +42,8 @@ function logout() {
   </v-navigation-drawer>
 
   <v-app-bar app flat border="b">
-    <v-toolbar-title>{{ auth.user?.nombre }}</v-toolbar-title>
-    <v-chip variant="tonal" color="primary" class="mr-4">{{ auth.user?.rol }}</v-chip>
+    <v-toolbar-title>{{ auth.profile?.nombre || auth.user?.email }}</v-toolbar-title>
+    <v-chip variant="tonal" color="primary" class="mr-4">{{ auth.profile?.rol || 'USER' }}</v-chip>
   </v-app-bar>
 
   <v-main>
