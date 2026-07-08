@@ -4,8 +4,13 @@ import { useDocentesStore } from '@/stores/docentes'
 
 const store = useDocentesStore()
 const dialog = ref(false)
+const accountDialog = ref(false)
 const editMode = ref(false)
 const form = ref({ nombre: '', email: '', departamento: '', categoria: '', antiguedad: null, acepta_ingles: false })
+const accountForm = ref({ email: '', password: '' })
+const accountDocente = ref(null)
+const accountLoading = ref(false)
+const accountError = ref(null)
 const editId = ref(null)
 
 onMounted(() => store.fetchDocentes())
@@ -21,6 +26,31 @@ function openEdit(docente) {
   editId.value = docente.id
   form.value = { ...docente }
   dialog.value = true
+}
+
+function openCreateAccount(docente) {
+  accountDocente.value = docente
+  accountForm.value = { email: docente.email || '', password: '' }
+  accountError.value = null
+  accountDialog.value = true
+}
+
+async function createAccount() {
+  accountLoading.value = true
+  accountError.value = null
+  try {
+    await store.createAccount(
+      accountDocente.value.id,
+      accountForm.value.email,
+      accountForm.value.password,
+      accountDocente.value.nombre
+    )
+    accountDialog.value = false
+  } catch (e) {
+    accountError.value = e.message
+  } finally {
+    accountLoading.value = false
+  }
 }
 
 async function save() {
@@ -76,6 +106,18 @@ async function remove(id) {
           <v-btn icon variant="text" size="small" @click="openEdit(item)">
             <v-icon size="small">mdi-pencil</v-icon>
           </v-btn>
+          <v-btn
+            v-if="!item.user_id"
+            icon
+            variant="text"
+            size="small"
+            color="info"
+            title="Crear cuenta"
+            @click="openCreateAccount(item)"
+          >
+            <v-icon size="small">mdi-account-plus</v-icon>
+          </v-btn>
+          <v-icon v-else size="small" color="success" class="mx-1" title="Cuenta activa">mdi-account-check</v-icon>
           <v-btn icon variant="text" size="small" color="error" @click="remove(item.id)">
             <v-icon size="small">mdi-delete</v-icon>
           </v-btn>
@@ -83,7 +125,7 @@ async function remove(id) {
       </v-data-table>
     </v-card>
 
-    <!-- Dialog -->
+    <!-- Dialog Docente -->
     <v-dialog v-model="dialog" max-width="500">
       <v-card>
         <v-card-title>{{ editMode ? 'Editar' : 'Nuevo' }} Docente</v-card-title>
@@ -99,6 +141,23 @@ async function remove(id) {
           <v-spacer />
           <v-btn @click="dialog = false">Cancelar</v-btn>
           <v-btn color="primary" @click="save">Guardar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog Crear Cuenta -->
+    <v-dialog v-model="accountDialog" max-width="450">
+      <v-card>
+        <v-card-title>Crear cuenta para {{ accountDocente?.nombre }}</v-card-title>
+        <v-card-text>
+          <v-alert v-if="accountError" type="error" variant="tonal" class="mb-3">{{ accountError }}</v-alert>
+          <v-text-field v-model="accountForm.email" label="Email" variant="outlined" class="mb-2" />
+          <v-text-field v-model="accountForm.password" label="Contraseña" type="password" variant="outlined" class="mb-2" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="accountDialog = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="accountLoading" @click="createAccount">Crear cuenta</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

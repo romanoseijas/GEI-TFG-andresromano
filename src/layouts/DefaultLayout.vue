@@ -1,17 +1,22 @@
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
 
-const navItems = [
+const allNavItems = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/dashboard' },
-  { title: 'Docentes', icon: 'mdi-account-group', to: '/docentes' },
-  { title: 'Periodos', icon: 'mdi-calendar-range', to: '/periodos' },
+  { title: 'Docentes', icon: 'mdi-account-group', to: '/docentes', adminOnly: true },
+  { title: 'Periodos', icon: 'mdi-calendar-range', to: '/periodos', adminOnly: true },
   { title: 'Disponibilidad', icon: 'mdi-calendar-clock', to: '/disponibilidad' },
-  { title: 'TFGs', icon: 'mdi-book-open-variant', to: '/tfgs' },
+  { title: 'TFGs', icon: 'mdi-book-open-variant', to: '/tfgs', adminOnly: true },
 ]
+
+const navItems = computed(() =>
+  allNavItems.filter((item) => !item.adminOnly || auth.isAdmin)
+)
 
 async function logout() {
   await auth.logout()

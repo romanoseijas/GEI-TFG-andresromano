@@ -44,7 +44,7 @@ async function save() {
     for (const day of days) {
       for (const hour of grid.value[day]) {
         slots.push({
-          docente_id: auth.user.id,
+          docente_id: auth.docenteId,
           periodo_id: selectedPeriodo.value,
           dia_semana: day.toLowerCase(),
           hora_inicio: hour,

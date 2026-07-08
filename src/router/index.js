@@ -22,11 +22,13 @@ const router = createRouter({
         {
           path: 'docentes',
           name: 'docentes',
+          meta: { requiresAdmin: true },
           component: () => import('@/views/DocentesView.vue'),
         },
         {
           path: 'periodos',
           name: 'periodos',
+          meta: { requiresAdmin: true },
           component: () => import('@/views/PeriodosView.vue'),
         },
         {
@@ -37,6 +39,7 @@ const router = createRouter({
         {
           path: 'tfgs',
           name: 'tfgs',
+          meta: { requiresAdmin: true },
           component: () => import('@/views/TfgsView.vue'),
         },
       ],
@@ -52,6 +55,9 @@ router.beforeEach(async (to) => {
 
   if (to.name !== 'login' && !auth.isAuthenticated) return '/login'
   if (to.name === 'login' && auth.isAuthenticated) return '/dashboard'
+
+  // Role-based access control
+  if (to.meta.requiresAdmin && !auth.isAdmin) return '/disponibilidad'
 })
 
 export default router
