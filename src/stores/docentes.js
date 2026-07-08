@@ -37,5 +37,22 @@ export const useDocentesStore = defineStore('docentes', () => {
     docentes.value = docentes.value.filter((d) => d.id !== id)
   }
 
-  return { docentes, loading, error, fetchDocentes, addDocente, editDocente, removeDocente }
+  async function createAccount(docenteId, email, password, nombre) {
+    const result = await docentesService.createDocenteAccount(docenteId, email, password, nombre)
+    // Update the local docente record with the user_id
+    const idx = docentes.value.findIndex((d) => d.id === docenteId)
+    if (idx !== -1) docentes.value[idx].user_id = result.user_id
+    return result
+  }
+
+  return {
+    docentes,
+    loading,
+    error,
+    fetchDocentes,
+    addDocente,
+    editDocente,
+    removeDocente,
+    createAccount,
+  }
 })
