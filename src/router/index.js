@@ -1,5 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import LoginView from '@/views/LoginView.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import DashboardView from '@/views/DashboardView.vue'
+import DocentesView from '@/views/DocentesView.vue'
+import PeriodosView from '@/views/PeriodosView.vue'
+import DisponibilidadView from '@/views/DisponibilidadView.vue'
+import TfgsView from '@/views/TfgsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,40 +14,40 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/LoginView.vue'),
+      component: LoginView,
     },
     {
       path: '/',
-      component: () => import('@/layouts/DefaultLayout.vue'),
+      component: DefaultLayout,
       children: [
         { path: '', redirect: '/dashboard' },
         {
           path: 'dashboard',
           name: 'dashboard',
-          component: () => import('@/views/DashboardView.vue'),
+          component: DashboardView,
         },
         {
           path: 'docentes',
           name: 'docentes',
           meta: { requiresAdmin: true },
-          component: () => import('@/views/DocentesView.vue'),
+          component: DocentesView,
         },
         {
           path: 'periodos',
           name: 'periodos',
           meta: { requiresAdmin: true },
-          component: () => import('@/views/PeriodosView.vue'),
+          component: PeriodosView,
         },
         {
           path: 'disponibilidad',
           name: 'disponibilidad',
-          component: () => import('@/views/DisponibilidadView.vue'),
+          component: DisponibilidadView,
         },
         {
           path: 'tfgs',
           name: 'tfgs',
           meta: { requiresAdmin: true },
-          component: () => import('@/views/TfgsView.vue'),
+          component: TfgsView,
         },
       ],
     },
