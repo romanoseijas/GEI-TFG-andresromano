@@ -22,24 +22,18 @@ export async function getTfgById(id) {
 }
 
 export async function createTfg(tfg) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from(TABLE)
     .insert(tfg)
-    .select('*, docentes!tfgs_tutor_id_fkey(nombre)')
-    .single()
   if (error) throw error
-  return data
 }
 
 export async function updateTfg(id, changes) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from(TABLE)
     .update(changes)
     .eq('id', id)
-    .select('*, docentes!tfgs_tutor_id_fkey(nombre)')
-    .single()
   if (error) throw error
-  return data
 }
 
 export async function deleteTfg(id) {

@@ -20,16 +20,13 @@ export const useTfgsStore = defineStore('tfgs', () => {
   }
 
   async function addTfg(tfg) {
-    const created = await tfgsService.createTfg(tfg)
-    tfgs.value.push(created)
-    return created
+    await tfgsService.createTfg(tfg)
+    await fetchTfgs()
   }
 
   async function editTfg(id, changes) {
-    const updated = await tfgsService.updateTfg(id, changes)
-    const idx = tfgs.value.findIndex((t) => t.id === id)
-    if (idx !== -1) tfgs.value[idx] = updated
-    return updated
+    await tfgsService.updateTfg(id, changes)
+    await fetchTfgs()
   }
 
   async function removeTfg(id) {

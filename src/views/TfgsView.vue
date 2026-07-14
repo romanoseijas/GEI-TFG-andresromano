@@ -43,12 +43,10 @@ function openNew() {
 function openEdit(tfg) {
   editMode.value = true
   editId.value = tfg.id
-  const tutorValido =
-    tfg.idioma !== 'Inglés' || docentesStore.docentes.some((d) => d.id === tfg.tutor_id && d.acepta_ingles)
   form.value = {
     titulo: tfg.titulo,
     estudiante: tfg.estudiante,
-    tutor_id: tutorValido ? tfg.tutor_id : null,
+    tutor_id: tfg.tutor_id,
     mencion: tfg.mencion,
     idioma: tfg.idioma,
     titulacion: tfg.titulacion,
