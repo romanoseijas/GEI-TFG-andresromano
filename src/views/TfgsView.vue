@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useTfgsStore } from '@/stores/tfgs'
 import { useDocentesStore } from '@/stores/docentes'
 
@@ -12,6 +12,22 @@ const form = ref({ titulo: '', estudiante: '', tutor_id: null, mencion: '', idio
 
 const idiomas = ['Castellano', 'Inglés']
 const menciones = ['Ingeniería del Software', 'Computación', 'Sistemas de Información', 'Tecnologías de la Información']
+
+const tutoresDisponibles = computed(() =>
+  form.value.idioma === 'Inglés'
+    ? docentesStore.docentes.filter((d) => d.acepta_ingles)
+    : docentesStore.docentes
+)
+
+// If the TFG is switched to English and the current tutor doesn't accept English TFGs, clear the selection
+watch(
+  () => form.value.idioma,
+  (idioma) => {
+    if (idioma !== 'Inglés') return
+    const tutorValido = tutoresDisponibles.value.some((d) => d.id === form.value.tutor_id)
+    if (!tutorValido) form.value.tutor_id = null
+  }
+)
 
 onMounted(() => {
   store.fetchTfgs()
@@ -27,7 +43,16 @@ function openNew() {
 function openEdit(tfg) {
   editMode.value = true
   editId.value = tfg.id
-  form.value = { titulo: tfg.titulo, estudiante: tfg.estudiante, tutor_id: tfg.tutor_id, mencion: tfg.mencion, idioma: tfg.idioma, titulacion: tfg.titulacion }
+  const tutorValido =
+    tfg.idioma !== 'Inglés' || docentesStore.docentes.some((d) => d.id === tfg.tutor_id && d.acepta_ingles)
+  form.value = {
+    titulo: tfg.titulo,
+    estudiante: tfg.estudiante,
+    tutor_id: tutorValido ? tfg.tutor_id : null,
+    mencion: tfg.mencion,
+    idioma: tfg.idioma,
+    titulacion: tfg.titulacion,
+  }
   dialog.value = true
 }
 
@@ -96,10 +121,12 @@ async function remove(id) {
           <v-text-field v-model="form.estudiante" label="Estudiante" variant="outlined" class="mb-2" />
           <v-select
             v-model="form.tutor_id"
-            :items="docentesStore.docentes"
+            :items="tutoresDisponibles"
             item-title="nombre"
             item-value="id"
             label="Tutor/a"
+            :hint="form.idioma === 'Inglés' ? 'Solo se muestran los docentes que aceptan tribunales en inglés' : ''"
+            persistent-hint
             variant="outlined"
             class="mb-2"
           />
