@@ -41,6 +41,7 @@ const router = createRouter({
         {
           path: 'disponibilidad',
           name: 'disponibilidad',
+          meta: { requiresDocente: true },
           component: DisponibilidadView,
         },
         {
@@ -64,7 +65,8 @@ router.beforeEach(async (to) => {
   if (to.name === 'login' && auth.isAuthenticated) return '/dashboard'
 
   // Role-based access control
-  if (to.meta.requiresAdmin && !auth.isAdmin) return '/disponibilidad'
+  if (to.meta.requiresAdmin && !auth.isAdmin) return '/dashboard'
+  if (to.meta.requiresDocente && !auth.isDocente) return '/dashboard'
 })
 
 export default router
