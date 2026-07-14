@@ -33,6 +33,10 @@ export const useDocentesStore = defineStore('docentes', () => {
   }
 
   async function removeDocente(id) {
+    const docente = docentes.value.find((d) => d.id === id)
+    if (docente?.user_id) {
+      await docentesService.deleteDocenteAccount(id)
+    }
     await docentesService.deleteDocente(id)
     docentes.value = docentes.value.filter((d) => d.id !== id)
   }
@@ -45,6 +49,12 @@ export const useDocentesStore = defineStore('docentes', () => {
     return result
   }
 
+  async function deleteAccount(docenteId) {
+    await docentesService.deleteDocenteAccount(docenteId)
+    const idx = docentes.value.findIndex((d) => d.id === docenteId)
+    if (idx !== -1) docentes.value[idx].user_id = null
+  }
+
   return {
     docentes,
     loading,
@@ -54,5 +64,6 @@ export const useDocentesStore = defineStore('docentes', () => {
     editDocente,
     removeDocente,
     createAccount,
+    deleteAccount,
   }
 })

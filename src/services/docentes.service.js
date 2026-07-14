@@ -48,3 +48,12 @@ export async function createDocenteAccount(docenteId, email, password, nombre) {
   if (response.data?.error) throw new Error(response.data.error)
   return response.data
 }
+
+export async function deleteDocenteAccount(docenteId) {
+  const response = await supabase.functions.invoke('delete-docente-account', {
+    body: { docente_id: docenteId },
+  })
+  if (response.error) throw new Error(response.error.message || 'Error deleting account')
+  if (response.data?.error) throw new Error(response.data.error)
+  return response.data
+}

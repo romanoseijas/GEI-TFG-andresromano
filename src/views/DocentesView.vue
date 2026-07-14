@@ -11,7 +11,36 @@ const accountForm = ref({ email: '', password: '' })
 const accountDocente = ref(null)
 const accountLoading = ref(false)
 const accountError = ref(null)
+const deleteAccountLoading = ref(null)
+const removeLoading = ref(null)
 const editId = ref(null)
+
+const confirmDialog = ref(false)
+const confirmTitle = ref('')
+const confirmText = ref('')
+const confirmAction = ref(null)
+
+const snackbar = ref(false)
+const snackbarText = ref('')
+
+function notifyError(message) {
+  snackbarText.value = message
+  snackbar.value = true
+}
+
+function askConfirm(title, text, action) {
+  confirmTitle.value = title
+  confirmText.value = text
+  confirmAction.value = action
+  confirmDialog.value = true
+}
+
+async function onConfirm() {
+  const action = confirmAction.value
+  confirmDialog.value = false
+  confirmAction.value = null
+  if (action) await action()
+}
 
 onMounted(() => store.fetchDocentes())
 
@@ -62,10 +91,38 @@ async function save() {
   dialog.value = false
 }
 
-async function remove(id) {
-  if (confirm('¿Eliminar este docente?')) {
-    await store.removeDocente(id)
-  }
+function remove(id) {
+  askConfirm(
+    'Eliminar docente',
+    '¿Eliminar este docente? Si tiene una cuenta de acceso, también se eliminará de la autenticación.',
+    async () => {
+      removeLoading.value = id
+      try {
+        await store.removeDocente(id)
+      } catch (e) {
+        notifyError('Error al eliminar docente: ' + e.message)
+      } finally {
+        removeLoading.value = null
+      }
+    }
+  )
+}
+
+function deleteAccount(docente) {
+  askConfirm(
+    'Eliminar cuenta',
+    `¿Eliminar la cuenta de acceso de ${docente.nombre}? El registro del docente se mantendrá.`,
+    async () => {
+      deleteAccountLoading.value = docente.id
+      try {
+        await store.deleteAccount(docente.id)
+      } catch (e) {
+        notifyError('Error al eliminar cuenta: ' + e.message)
+      } finally {
+        deleteAccountLoading.value = null
+      }
+    }
+  )
 }
 </script>
 
@@ -117,8 +174,19 @@ async function remove(id) {
           >
             <v-icon size="small">mdi-account-plus</v-icon>
           </v-btn>
-          <v-icon v-else size="small" color="success" class="mx-1" title="Cuenta activa">mdi-account-check</v-icon>
-          <v-btn icon variant="text" size="small" color="error" @click="remove(item.id)">
+          <v-btn
+            v-else
+            icon
+            variant="text"
+            size="small"
+            color="success"
+            title="Eliminar cuenta"
+            :loading="deleteAccountLoading === item.id"
+            @click="deleteAccount(item)"
+          >
+            <v-icon size="small">mdi-account-remove</v-icon>
+          </v-btn>
+          <v-btn icon variant="text" size="small" color="error" :loading="removeLoading === item.id" @click="remove(item.id)">
             <v-icon size="small">mdi-delete</v-icon>
           </v-btn>
         </template>
@@ -161,5 +229,25 @@ async function remove(id) {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog Confirmación -->
+    <v-dialog v-model="confirmDialog" max-width="420">
+      <v-card>
+        <v-card-title>{{ confirmTitle }}</v-card-title>
+        <v-card-text>{{ confirmText }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="confirmDialog = false">Cancelar</v-btn>
+          <v-btn color="error" @click="onConfirm">Eliminar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar v-model="snackbar" color="error" timeout="5000">
+      {{ snackbarText }}
+      <template #actions>
+        <v-btn variant="text" @click="snackbar = false">Cerrar</v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
