@@ -25,7 +25,7 @@ export async function createTfg(tfg) {
   const { data, error } = await supabase
     .from(TABLE)
     .insert(tfg)
-    .select()
+    .select('*, docentes!tfgs_tutor_id_fkey(nombre)')
     .single()
   if (error) throw error
   return data
@@ -36,7 +36,7 @@ export async function updateTfg(id, changes) {
     .from(TABLE)
     .update(changes)
     .eq('id', id)
-    .select()
+    .select('*, docentes!tfgs_tutor_id_fkey(nombre)')
     .single()
   if (error) throw error
   return data
