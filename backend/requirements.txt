@@ -1,0 +1,5 @@
+pyomo>=6.7
+highspy>=1.7          # HiGHS MILP solver (appsi_highs)
+fastapi>=0.111
+uvicorn[standard]>=0.29
+pydantic>=2.7
