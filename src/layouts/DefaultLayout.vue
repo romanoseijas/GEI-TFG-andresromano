@@ -12,6 +12,7 @@ const allNavItems = [
   { title: 'Periodos', icon: 'mdi-calendar-range', to: '/periodos', adminOnly: true },
   { title: 'Disponibilidad', icon: 'mdi-calendar-clock', to: '/disponibilidad', docenteOnly: true },
   { title: 'TFGs', icon: 'mdi-book-open-variant', to: '/tfgs', adminOnly: true },
+  { title: 'Planificación', icon: 'mdi-calendar-check', to: '/planificacion', adminOnly: true },
 ]
 
 const navItems = computed(() =>

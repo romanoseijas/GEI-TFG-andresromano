@@ -10,9 +10,25 @@ const form = ref({
   nombre: '',
   fecha_inicio: '',
   fecha_fin: '',
+  hora_inicio_dia: '09:00',
+  hora_fin_dia: '14:00',
   duracion_defensa: 30,
   estado: 'BORRADOR',
   num_miembros: 3,
+  num_aulas: 3,
+  max_tribunales: 5,
+})
+
+const emptyForm = () => ({
+  nombre: '',
+  fecha_inicio: '',
+  fecha_fin: '',
+  hora_inicio_dia: '09:00',
+  hora_fin_dia: '14:00',
+  duracion_defensa: 30,
+  estado: 'BORRADOR',
+  num_miembros: 3,
+  num_aulas: 3,
   max_tribunales: 5,
 })
 
@@ -23,14 +39,14 @@ onMounted(() => store.fetchPeriodos())
 
 function openNew() {
   editMode.value = false
-  form.value = { nombre: '', fecha_inicio: '', fecha_fin: '', duracion_defensa: 30, estado: 'BORRADOR', num_miembros: 3, max_tribunales: 5 }
+  form.value = emptyForm()
   dialog.value = true
 }
 
 function openEdit(periodo) {
   editMode.value = true
   editId.value = periodo.id
-  form.value = { ...periodo }
+  form.value = { ...emptyForm(), ...periodo }
   dialog.value = true
 }
 
@@ -71,8 +87,10 @@ async function remove(id) {
           <v-card-text>
             <p><strong>Inicio:</strong> {{ p.fecha_inicio }}</p>
             <p><strong>Fin:</strong> {{ p.fecha_fin }}</p>
+            <p><strong>Horario diario:</strong> {{ p.hora_inicio_dia }} - {{ p.hora_fin_dia }}</p>
             <p><strong>Duración defensa:</strong> {{ p.duracion_defensa }} min</p>
             <p><strong>Miembros tribunal:</strong> {{ p.num_miembros }}</p>
+            <p><strong>Aulas simultáneas:</strong> {{ p.num_aulas }}</p>
             <p><strong>Máx. tribunales/docente:</strong> {{ p.max_tribunales }}</p>
           </v-card-text>
           <v-card-actions>
@@ -91,10 +109,23 @@ async function remove(id) {
         <v-card-title>{{ editMode ? 'Editar' : 'Nuevo' }} Periodo</v-card-title>
         <v-card-text>
           <v-text-field v-model="form.nombre" label="Nombre" variant="outlined" class="mb-2" />
-          <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined" class="mb-2" />
-          <v-text-field v-model="form.fecha_fin" label="Fecha fin" type="date" variant="outlined" class="mb-2" />
-          <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number" variant="outlined" class="mb-2" />
+          <v-row dense>
+            <v-col cols="6">
+              <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined" class="mb-2" />
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="form.fecha_fin" label="Fecha fin" type="date" variant="outlined" class="mb-2" />
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="form.hora_inicio_dia" label="Hora inicio (diaria)" type="time" variant="outlined" class="mb-2" />
+            </v-col>
+            <v-col cols="6">
+              <v-text-field v-model="form.hora_fin_dia" label="Hora fin (diaria)" type="time" variant="outlined" class="mb-2" />
+            </v-col>
+          </v-row>
+          <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number" variant="outlined" class="mb-2" hint="Define el paso de la rejilla de horarios" persistent-hint />
           <v-text-field v-model.number="form.num_miembros" label="Nº miembros tribunal" type="number" variant="outlined" class="mb-2" />
+          <v-text-field v-model.number="form.num_aulas" label="Nº de aulas simultáneas" type="number" variant="outlined" class="mb-2" hint="Defensas que pueden celebrarse a la vez" persistent-hint />
           <v-text-field v-model.number="form.max_tribunales" label="Máx. tribunales por docente" type="number" variant="outlined" class="mb-2" />
           <v-select v-model="form.estado" :items="estados" label="Estado" variant="outlined" />
         </v-card-text>

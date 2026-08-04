@@ -7,6 +7,7 @@ import DocentesView from '@/views/DocentesView.vue'
 import PeriodosView from '@/views/PeriodosView.vue'
 import DisponibilidadView from '@/views/DisponibilidadView.vue'
 import TfgsView from '@/views/TfgsView.vue'
+import PlanificacionView from '@/views/PlanificacionView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +50,12 @@ const router = createRouter({
           name: 'tfgs',
           meta: { requiresAdmin: true },
           component: TfgsView,
+        },
+        {
+          path: 'planificacion',
+          name: 'planificacion',
+          meta: { requiresAdmin: true },
+          component: PlanificacionView,
         },
       ],
     },

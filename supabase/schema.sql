@@ -42,23 +42,33 @@ create table periodos (
   nombre text not null,
   fecha_inicio date not null,
   fecha_fin date not null,
+  -- Ventana horaria diaria en la que se pueden celebrar defensas (HH:MM)
+  hora_inicio_dia text not null default '09:00',
+  hora_fin_dia text not null default '14:00',
+  -- Duracion de cada defensa en minutos: define el paso de la rejilla de slots
   duracion_defensa integer default 30,
   estado text default 'BORRADOR' check (estado in ('BORRADOR', 'ABIERTO', 'CERRADO', 'GENERADO', 'PUBLICADO')),
   num_miembros integer default 3,
+  -- Numero de aulas simultaneas disponibles (se nombran A1..An)
+  num_aulas integer default 3,
+  -- Maximo de tribunales a los que puede pertenecer un docente en el periodo
   max_tribunales integer default 5,
   created_at timestamptz default now()
 );
 
--- Disponibilidad
+-- Disponibilidad: una fila = un bloque de 30 min marcado por el docente en una fecha concreta
 create table disponibilidad (
   id uuid default gen_random_uuid() primary key,
   docente_id uuid references docentes(id) on delete cascade,
   periodo_id uuid references periodos(id) on delete cascade,
-  dia_semana text not null,
+  fecha date not null,
   hora_inicio text not null,
   created_at timestamptz default now(),
-  unique(docente_id, periodo_id, dia_semana, hora_inicio)
+  unique(docente_id, periodo_id, fecha, hora_inicio)
 );
+
+create index disponibilidad_periodo_idx on disponibilidad (periodo_id);
+create index disponibilidad_docente_periodo_idx on disponibilidad (docente_id, periodo_id);
 
 -- TFGs
 create table tfgs (

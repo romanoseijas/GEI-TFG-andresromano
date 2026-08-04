@@ -37,10 +37,25 @@ export const useDisponibilidadStore = defineStore('disponibilidad', () => {
     return saved
   }
 
+  async function replaceSlots(docenteId, periodoId, newSlots) {
+    const saved = await disponibilidadService.replaceDisponibilidad(docenteId, periodoId, newSlots)
+    slots.value = saved
+    return saved
+  }
+
   async function removeSlot(id) {
     await disponibilidadService.deleteDisponibilidad(id)
     slots.value = slots.value.filter((s) => s.id !== id)
   }
 
-  return { slots, loading, error, fetchByDocente, fetchByPeriodo, saveSlots, removeSlot }
+  return {
+    slots,
+    loading,
+    error,
+    fetchByDocente,
+    fetchByPeriodo,
+    saveSlots,
+    replaceSlots,
+    removeSlot,
+  }
 })

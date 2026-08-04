@@ -4,81 +4,120 @@ sys.path.insert(0, os.path.dirname(__file__))
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
-from pyomo.environ import value
+from typing import List, Optional
 
-from model_milp import build_model, solve_model
+from data_input import build_input_data
+from model_milp import solve_balanced, extract_solution, is_solved
 
 app = FastAPI(
     title="TFG Tribunal Assignment API",
     description="MILP-based API to schedule TFG tribunal assignments.",
-    version="1.0.0",
+    version="2.0.0",
 )
+
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("SOLVER_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+    if o.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
+# --------------------------------------------------------------------------- #
+# Entrada: entidades tal y como salen de Supabase
+# --------------------------------------------------------------------------- #
+
+class Periodo(BaseModel):
+    id: Optional[str] = None
+    nombre: Optional[str] = None
+    fecha_inicio: str = Field(..., description="YYYY-MM-DD")
+    fecha_fin: str = Field(..., description="YYYY-MM-DD")
+    hora_inicio_dia: str = Field("09:00", description="Inicio de la ventana diaria, HH:MM")
+    hora_fin_dia: str = Field("14:00", description="Fin de la ventana diaria, HH:MM")
+    duracion_defensa: int = Field(30, gt=0, description="Minutos por defensa")
+    num_miembros: int = Field(3, gt=0, description="Tamano del tribunal (k)")
+    num_aulas: int = Field(3, gt=0, description="Aulas simultaneas disponibles")
+    max_tribunales: Optional[int] = Field(None, description="Maximo de tribunales por docente")
+
+
+class Docente(BaseModel):
+    id: str
+    nombre: Optional[str] = None
+    acepta_ingles: bool = False
+    activo: bool = True
+
+
+class Tfg(BaseModel):
+    id: str
+    titulo: Optional[str] = None
+    estudiante: Optional[str] = None
+    tutor_id: Optional[str] = None
+    idioma: str = "Castellano"
+
+
+class DisponibilidadSlot(BaseModel):
+    docente_id: str
+    fecha: str = Field(..., description="YYYY-MM-DD")
+    hora_inicio: str = Field(..., description="HH:MM")
+
+
 class SolveRequest(BaseModel):
-    """
-    All list/dict keys that are tuples in the Pyomo model are encoded as
-    comma-separated strings: e.g. {"D1,S1": 1} instead of {("D1","S1"): 1}.
-    """
-    T: List[str] = Field(..., description="TFG identifiers")
-    D: List[str] = Field(..., description="Teacher (docente) identifiers")
-    S: List[str] = Field(..., description="Time-slot identifiers")
-    A: List[str] = Field(..., description="Room (aula) identifiers")
-    R: List[str] = Field(..., description="Tribunal identifiers")
-    avail: Dict[str, int] = Field(
-        ..., description="Teacher availability per slot. Key: 'D,S', value: 0/1"
-    )
-    inc: Dict[str, int] = Field(
-        ..., description="Teacher-TFG incompatibility. Key: 'D,T', value: 0/1 (1=incompatible)"
-    )
-    lang_ok: Dict[str, int] = Field(
-        ..., description="Language compatibility. Key: 'D,T', value: 0/1"
-    )
-    room_avail: Dict[str, int] = Field(
-        ..., description="Room availability. Key: 'S,A,T', value: 0/1"
-    )
-    tribunal_size: int = Field(3, description="Number of evaluators per tribunal")
-    load_min: Dict[str, int] = Field(
-        ..., description="Minimum load per teacher. Key: teacher id"
-    )
-    load_max: Dict[str, int] = Field(
-        ..., description="Maximum load per teacher. Key: teacher id"
-    )
+    periodo: Periodo
+    docentes: List[Docente]
+    tfgs: List[Tfg]
+    disponibilidad: List[DisponibilidadSlot] = []
+    time_limit: Optional[int] = Field(60, description="Limite de tiempo del solver en segundos")
 
 
-class TFGAssignment(BaseModel):
-    tfg: str
-    slot: str
-    room: str
-    evaluators: List[str]
+# --------------------------------------------------------------------------- #
+# Salida
+# --------------------------------------------------------------------------- #
+
+class Evaluador(BaseModel):
+    docente_id: str
+    nombre: str
+
+
+class Asignacion(BaseModel):
+    tfg_id: str
+    titulo: str
+    estudiante: str
+    idioma: str
+    tutor_id: Optional[str] = None
+    tutor_nombre: Optional[str] = None
+    fecha: str
+    dia_semana: str
+    hora_inicio: str
+    hora_fin: str
+    aula: str
+    tribunal: List[Evaluador]
+
+
+class Carga(BaseModel):
+    docente_id: str
+    nombre: str
+    num_tribunales: int
 
 
 class SolveResponse(BaseModel):
     status: str
     termination: str
+    resuelto: bool
+    num_slots: int = 0
+    num_aulas: int = 0
+    tribunal_size: int = 0
     lmax: Optional[float] = None
     lmin: Optional[float] = None
     gap: Optional[float] = None
-    assignments: List[TFGAssignment] = []
-
-
-def _parse_flat_keys(flat: Dict[str, int], arity: int) -> Dict[tuple, int]:
-    """Convert 'K1,K2,...' string keys back to tuples."""
-    result = {}
-    for key, val in flat.items():
-        parts = key.split(",", arity - 1)
-        if len(parts) != arity:
-            raise ValueError(f"Expected {arity}-part key, got: '{key}'")
-        result[tuple(parts)] = val
-    return result
+    asignaciones: List[Asignacion] = []
+    cargas: List[Carga] = []
+    avisos: List[str] = []
 
 
 @app.get("/health")
@@ -88,52 +127,92 @@ def health():
 
 @app.post("/solve", response_model=SolveResponse)
 def solve(req: SolveRequest):
+    payload = req.model_dump()
+
     try:
-        data = {
-            "T": req.T,
-            "D": req.D,
-            "S": req.S,
-            "A": req.A,
-            "R": req.R,
-            "avail": _parse_flat_keys(req.avail, 2),
-            "inc": _parse_flat_keys(req.inc, 2),
-            "lang_ok": _parse_flat_keys(req.lang_ok, 2),
-            "room_avail": _parse_flat_keys(req.room_avail, 3),
-            "tribunal_size": req.tribunal_size,
-            "load_min": req.load_min,
-            "load_max": req.load_max,
-        }
-    except ValueError as exc:
+        data = build_input_data(payload)
+    except (ValueError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
     try:
-        model = build_model(data)
-        result = solve_model(model)
+        model, result, banda = solve_balanced(
+            data.as_model_data(), time_limit=req.time_limit
+        )
+    except ValueError as exc:
+        # Infactibilidad detectable al construir el modelo: devolvemos el motivo
+        # junto con los avisos del prevuelo para que el admin pueda corregirlo.
+        raise HTTPException(
+            status_code=422,
+            detail={"error": str(exc), "avisos": data.avisos},
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     status = str(result.solver.status)
     termination = str(result.solver.termination_condition)
-
-    if termination.lower() not in ("optimal", "feasible"):
-        return SolveResponse(status=status, termination=termination)
-
-    assignments = []
-    for t in model.T:
-        for s in model.S:
-            for a in model.A:
-                if value(model.y[t, s, a]) > 0.5:
-                    evaluators = [d for d in model.D if value(model.x[d, t, s, a]) > 0.5]
-                    assignments.append(TFGAssignment(tfg=t, slot=s, room=a, evaluators=evaluators))
-
-    lmax_val = value(model.Lmax)
-    lmin_val = value(model.Lmin)
-
-    return SolveResponse(
+    base = SolveResponse(
         status=status,
         termination=termination,
-        lmax=lmax_val,
-        lmin=lmin_val,
-        gap=lmax_val - lmin_val,
-        assignments=assignments,
+        resuelto=False,
+        num_slots=len(data.S),
+        num_aulas=data.num_aulas,
+        tribunal_size=data.tribunal_size,
+        avisos=list(data.avisos),
     )
+
+    if not is_solved(result):
+        base.avisos.append(
+            "El solver no encontro ninguna planificacion factible. Revisa los "
+            "avisos anteriores: normalmente falta disponibilidad o hay mas TFGs "
+            "que huecos configurados."
+        )
+        return base
+
+    asignaciones = []
+    cargas = {d: 0 for d in data.D}
+    for tfg_id, sid, aula, evaluadores in extract_solution(model):
+        slot = data.slots_by_id[sid]
+        meta = data.tfg_meta[tfg_id]
+        for d in evaluadores:
+            cargas[d] += 1
+        asignaciones.append(
+            Asignacion(
+                tfg_id=tfg_id,
+                titulo=meta["titulo"],
+                estudiante=meta["estudiante"],
+                idioma=meta["idioma"],
+                tutor_id=meta["tutor_id"],
+                tutor_nombre=meta["tutor_nombre"],
+                fecha=slot.fecha.isoformat(),
+                dia_semana=slot.dia_semana,
+                hora_inicio=slot.hora_inicio,
+                hora_fin=slot.hora_fin,
+                aula=aula,
+                tribunal=[
+                    Evaluador(docente_id=d, nombre=data.docente_nombre[d])
+                    for d in evaluadores
+                ],
+            )
+        )
+
+    asignaciones.sort(key=lambda a: (a.fecha, a.hora_inicio, a.aula))
+
+    activos = [n for n in cargas.values() if n > 0]
+    base.resuelto = True
+    base.lmax = float(max(activos)) if activos else 0.0
+    base.lmin = float(min(activos)) if activos else 0.0
+    base.gap = base.lmax - base.lmin
+    base.asignaciones = asignaciones
+    base.cargas = sorted(
+        (
+            Carga(docente_id=d, nombre=data.docente_nombre[d], num_tribunales=n)
+            for d, n in cargas.items()
+        ),
+        key=lambda c: (-c.num_tribunales, c.nombre),
+    )
+
+    if len(asignaciones) < len(data.T):
+        base.avisos.append(
+            f"Solo se han podido programar {len(asignaciones)} de {len(data.T)} TFGs."
+        )
+    return base
