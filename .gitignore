@@ -62,3 +62,6 @@ test-results
 
 #VSCODE
 .vscode
+
+.venv
+__pycache__
