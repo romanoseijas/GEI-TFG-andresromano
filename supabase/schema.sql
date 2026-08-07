@@ -42,16 +42,12 @@ create table periodos (
   nombre text not null,
   fecha_inicio date not null,
   fecha_fin date not null,
-  -- Ventana horaria diaria en la que se pueden celebrar defensas (HH:MM)
   hora_inicio_dia text not null default '09:00',
   hora_fin_dia text not null default '14:00',
-  -- Duracion de cada defensa en minutos: define el paso de la rejilla de slots
   duracion_defensa integer default 30,
   estado text default 'BORRADOR' check (estado in ('BORRADOR', 'ABIERTO', 'CERRADO', 'GENERADO', 'PUBLICADO')),
   num_miembros integer default 3,
-  -- Numero de aulas simultaneas disponibles (se nombran A1..An)
   num_aulas integer default 3,
-  -- Maximo de tribunales a los que puede pertenecer un docente en el periodo
   max_tribunales integer default 5,
   created_at timestamptz default now()
 );
