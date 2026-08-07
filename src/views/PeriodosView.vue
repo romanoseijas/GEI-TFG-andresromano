@@ -6,6 +6,7 @@ const store = usePeriodosStore()
 const dialog = ref(false)
 const editMode = ref(false)
 const editId = ref(null)
+const formRef = ref(null)
 const form = ref({
   nombre: '',
   fecha_inicio: '',
@@ -18,6 +19,9 @@ const form = ref({
   num_aulas: 3,
   max_tribunales: 5,
 })
+const formRules = {
+  required: [(v) => !!v || 'Campo obligatorio'],
+}
 
 const emptyForm = () => ({
   nombre: '',
@@ -41,6 +45,7 @@ function openNew() {
   editMode.value = false
   form.value = emptyForm()
   dialog.value = true
+  formRef.value?.resetValidation?.()
 }
 
 function openEdit(periodo) {
@@ -48,15 +53,32 @@ function openEdit(periodo) {
   editId.value = periodo.id
   form.value = { ...emptyForm(), ...periodo }
   dialog.value = true
+  formRef.value?.resetValidation?.()
 }
 
 async function save() {
-  if (editMode.value) {
-    await store.editPeriodo(editId.value, form.value)
-  } else {
-    await store.addPeriodo(form.value)
+  store.error = null
+  const valid = formRef.value?.validate?.()
+  if (!valid) {
+    store.error = 'Completa las fechas antes de guardar.'
+    return
   }
-  dialog.value = false
+
+  if (!form.value.fecha_inicio || !form.value.fecha_fin) {
+    store.error = 'La fecha de inicio y fin son obligatorias.'
+    return
+  }
+
+  try {
+    if (editMode.value) {
+      await store.editPeriodo(editId.value, form.value)
+    } else {
+      await store.addPeriodo(form.value)
+    }
+    dialog.value = false
+  } catch (e) {
+    store.error = e.message || 'Error al guardar el periodo'
+  }
 }
 
 async function remove(id) {
@@ -108,33 +130,37 @@ async function remove(id) {
       <v-card>
         <v-card-title>{{ editMode ? 'Editar' : 'Nuevo' }} Periodo</v-card-title>
         <v-card-text>
-          <v-text-field v-model="form.nombre" label="Nombre" variant="outlined" class="mb-2" />
-          <v-row density="comfortable">
-            <v-col cols="6">
-              <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined"
-                class="mb-2" />
-            </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.fecha_fin" label="Fecha fin" type="date" variant="outlined" class="mb-2" />
-            </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.hora_inicio_dia" label="Hora inicio (diaria)" type="time" variant="outlined"
-                class="mb-2" />
-            </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="form.hora_fin_dia" label="Hora fin (diaria)" type="time" variant="outlined"
-                class="mb-2" />
-            </v-col>
-          </v-row>
-          <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number"
-            variant="outlined" class="mb-2" hint="Define el paso de la rejilla de horarios" persistent-hint />
-          <v-text-field v-model.number="form.num_miembros" label="Nº miembros tribunal" type="number" variant="outlined"
-            class="mb-2" />
-          <v-text-field v-model.number="form.num_aulas" label="Nº de aulas simultáneas" type="number" variant="outlined"
-            class="mb-2" hint="Defensas que pueden celebrarse a la vez" persistent-hint />
-          <v-text-field v-model.number="form.max_tribunales" label="Máx. tribunales por docente" type="number"
-            variant="outlined" class="mb-2" />
-          <v-select v-model="form.estado" :items="estados" label="Estado" variant="outlined" />
+          <v-form ref="formRef">
+            <v-text-field v-model="form.nombre" label="Nombre" variant="outlined" class="mb-2"
+              :rules="formRules.required" />
+            <v-row density="comfortable">
+              <v-col cols="6">
+                <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined"
+                  class="mb-2" :rules="formRules.required" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="form.fecha_fin" label="Fecha fin" type="date" variant="outlined" class="mb-2"
+                  :rules="formRules.required" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="form.hora_inicio_dia" label="Hora inicio (diaria)" type="time" variant="outlined"
+                  class="mb-2" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="form.hora_fin_dia" label="Hora fin (diaria)" type="time" variant="outlined"
+                  class="mb-2" />
+              </v-col>
+            </v-row>
+            <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number"
+              variant="outlined" class="mb-2" />
+            <v-text-field v-model.number="form.num_miembros" label="Nº miembros tribunal" type="number"
+              variant="outlined" class="mb-2" />
+            <v-text-field v-model.number="form.num_aulas" label="Nº de aulas simultáneas" type="number"
+              variant="outlined" class="mb-2" />
+            <v-text-field v-model.number="form.max_tribunales" label="Máx. tribunales por docente" type="number"
+              variant="outlined" class="mb-2" />
+            <v-select v-model="form.estado" :items="estados" label="Estado" variant="outlined" />
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
