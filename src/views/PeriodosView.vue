@@ -109,24 +109,31 @@ async function remove(id) {
         <v-card-title>{{ editMode ? 'Editar' : 'Nuevo' }} Periodo</v-card-title>
         <v-card-text>
           <v-text-field v-model="form.nombre" label="Nombre" variant="outlined" class="mb-2" />
-          <v-row dense>
+          <v-row density="comfortable">
             <v-col cols="6">
-              <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined" class="mb-2" />
+              <v-text-field v-model="form.fecha_inicio" label="Fecha inicio" type="date" variant="outlined"
+                class="mb-2" />
             </v-col>
             <v-col cols="6">
               <v-text-field v-model="form.fecha_fin" label="Fecha fin" type="date" variant="outlined" class="mb-2" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.hora_inicio_dia" label="Hora inicio (diaria)" type="time" variant="outlined" class="mb-2" />
+              <v-text-field v-model="form.hora_inicio_dia" label="Hora inicio (diaria)" type="time" variant="outlined"
+                class="mb-2" />
             </v-col>
             <v-col cols="6">
-              <v-text-field v-model="form.hora_fin_dia" label="Hora fin (diaria)" type="time" variant="outlined" class="mb-2" />
+              <v-text-field v-model="form.hora_fin_dia" label="Hora fin (diaria)" type="time" variant="outlined"
+                class="mb-2" />
             </v-col>
           </v-row>
-          <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number" variant="outlined" class="mb-2" hint="Define el paso de la rejilla de horarios" persistent-hint />
-          <v-text-field v-model.number="form.num_miembros" label="Nº miembros tribunal" type="number" variant="outlined" class="mb-2" />
-          <v-text-field v-model.number="form.num_aulas" label="Nº de aulas simultáneas" type="number" variant="outlined" class="mb-2" hint="Defensas que pueden celebrarse a la vez" persistent-hint />
-          <v-text-field v-model.number="form.max_tribunales" label="Máx. tribunales por docente" type="number" variant="outlined" class="mb-2" />
+          <v-text-field v-model.number="form.duracion_defensa" label="Duración defensa (min)" type="number"
+            variant="outlined" class="mb-2" hint="Define el paso de la rejilla de horarios" persistent-hint />
+          <v-text-field v-model.number="form.num_miembros" label="Nº miembros tribunal" type="number" variant="outlined"
+            class="mb-2" />
+          <v-text-field v-model.number="form.num_aulas" label="Nº de aulas simultáneas" type="number" variant="outlined"
+            class="mb-2" hint="Defensas que pueden celebrarse a la vez" persistent-hint />
+          <v-text-field v-model.number="form.max_tribunales" label="Máx. tribunales por docente" type="number"
+            variant="outlined" class="mb-2" />
           <v-select v-model="form.estado" :items="estados" label="Estado" variant="outlined" />
         </v-card-text>
         <v-card-actions>
