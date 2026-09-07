@@ -195,7 +195,7 @@ def target_band(idx):
     return math.floor(media), math.ceil(media)
 
 
-def solve_balanced(data, time_limit=60, tee=False, max_widen=6):
+def solve_balanced(data, time_limit=60, tee=False, max_widen=6, solver_name=None):
     """Resuelve buscando la banda de carga mas estrecha que sea factible.
 
     Devuelve (modelo, resultado, banda). Si ninguna banda funciona, la ultima
@@ -210,7 +210,7 @@ def solve_balanced(data, time_limit=60, tee=False, max_widen=6):
     for w in range(max_widen + 1):
         banda = (max(0, lo - w), min(tope, hi + w))
         model = build_model(data, load_band=banda, idx=idx)
-        result = solve_model(model, tee=tee, time_limit=time_limit)
+        result = solve_model(model, tee=tee, time_limit=time_limit, solver_name=solver_name)
         ultimo = (model, result, banda)
         if is_solved(result):
             model.solutions.load_from(result)
@@ -220,9 +220,10 @@ def solve_balanced(data, time_limit=60, tee=False, max_widen=6):
     return ultimo
 
 
-def solve_model(m, tee=False, time_limit=None):
+def solve_model(m, tee=False, time_limit=None, solver_name=None):
+    names = (solver_name,) if solver_name else SOLVER_NAMES
     last_error = None
-    for name in SOLVER_NAMES:
+    for name in names:
         try:
             solver = SolverFactory(name)
             if solver is None or not solver.available(exception_flag=False):
@@ -233,7 +234,7 @@ def solve_model(m, tee=False, time_limit=None):
         except Exception as exc:
             last_error = exc
     raise RuntimeError(
-        "No hay ningun solver MILP disponible (probados: appsi_highs, highs, cbc, glpk). "
+        f"No hay ningun solver MILP disponible (probados: {', '.join(names)}). "
         "Instala uno, por ejemplo: pip install highspy"
     ) from last_error
 
